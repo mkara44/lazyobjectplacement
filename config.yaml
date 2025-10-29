@@ -5,10 +5,15 @@ preprocess:
     base_file_folder_name: base_files
     images_folder_name: data/images
     masks_folder_name: data/masks
-    mask_data_url: https://storage.googleapis.com/openimages/v5/test-annotations-object-segmentation.csv
+    mask_data_url: https://storage.googleapis.com/openimages/v5/<SET_NAME>-annotations-object-segmentation.csv
     segmentation_masks_base_url: https://storage.googleapis.com/openimages/v5/<SET_NAME>-masks/<SET_NAME>-masks-<ID>.zip
-    id_list: ["0", "1"] #["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"]
+    bounding_boxes_base_url: https://storage.googleapis.com/openimages/v5/<SET_NAME>-annotations-bbox.csv
     image_id_base_url: https://storage.googleapis.com/openimages/2018_04/<SET_NAME>/<SET_NAME>-images-with-rotation.csv
+    id_list: ["0", "1"] #["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"]
+  
+  mask_controller:
+    min_mask_area_ratio: 0.02
+    max_mask_area_ratio: 0.8
 
 logging:
   version: 1

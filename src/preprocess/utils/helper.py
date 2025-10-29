@@ -7,6 +7,7 @@ logger = logging.getLogger("lazyobjectplacement")
 
 
 def download_file(url, target_path):
+    logger.info(f"Starting download from {url} to {target_path}...")
     response = requests.get(url)
     if response.status_code == 200:
         with open(target_path, "wb") as f:
@@ -28,6 +29,16 @@ def unzip_file(zip_path, extract_to=None, remove_zip=False):
     if remove_zip:
         os.remove(zip_path)
         logger.info(f"Removed zip file {zip_path}")
+
+def zip_folder(folder_path, zip_path):
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, start=folder_path)
+                zipf.write(file_path, arcname)
+
+    logger.info(f"Zipped folder {folder_path} to {zip_path}")
 
 def merge_folders(base_folder_path):
     folder_path_list = [os.path.join(base_folder_path, d) for d in os.listdir(base_folder_path) if os.path.isdir(os.path.join(base_folder_path, d))]

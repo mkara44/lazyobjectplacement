@@ -20,34 +20,36 @@ class Downloader:
         os.makedirs(self.images_folder_path, exist_ok=True)
         os.makedirs(self.masks_folder_path, exist_ok=True)
 
-    def run(self):
-        for set_name in ["test"]: #['train', 'validation', 'test']:
-            self.logger.info(f"Starting download for set: {set_name}")
-            
-            self.download_base_files(set_name)
-            self.download_segmentation_masks(set_name)
-            self.download_images(set_name)
+    def download_files(self, set_name, zip_id):
+        self.download_segmentation_masks(set_name, zip_id)
+        self.download_images(set_name)
 
     def download_base_files(self, set_name):
         image_id_url = self.cfg.openimages.image_id_base_url.replace("<SET_NAME>", set_name)
         image_id_target_path = os.path.join(self.base_file_folder_path, f"{set_name}_filelist.csv")
         download_file(image_id_url, target_path=image_id_target_path)
 
+        mask_url = self.cfg.openimages.mask_data_url.replace("<SET_NAME>", set_name)
+        mask_target_path = os.path.join(self.base_file_folder_path, f"{set_name}_mask_data.csv")
+        download_file(mask_url, target_path=mask_target_path)
+
+        bounding_boxes_url = self.cfg.openimages.bounding_boxes_base_url.replace("<SET_NAME>", set_name)
+        bounding_boxes_target_path = os.path.join(self.base_file_folder_path, f"{set_name}_bbox_annotations.csv")
+        download_file(bounding_boxes_url, target_path=bounding_boxes_target_path)
+
         self.logger.info(f"Base file lists downloaded for {set_name}.")
 
-    def download_segmentation_masks(self, set_name):
+    def download_segmentation_masks(self, set_name, zip_id):
         mask_set_path = os.path.join(self.masks_folder_path, set_name)
-
         os.makedirs(mask_set_path, exist_ok=True)
 
-        for image_id in self.cfg.openimages.id_list:
-            mask_url = self.cfg.openimages.segmentation_masks_base_url.replace("<SET_NAME>", set_name)
-            mask_url = mask_url.replace("<ID>", image_id)
+        mask_url = self.cfg.openimages.segmentation_masks_base_url.replace("<SET_NAME>", set_name)
+        mask_url = mask_url.replace("<ID>", zip_id)
 
-            mask_target_path = os.path.join(mask_set_path, f"{image_id}.zip")
-            download_file(mask_url, target_path=mask_target_path)
-            unzip_file(mask_target_path, remove_zip=True)
-            merge_folders(mask_set_path)
+        mask_target_path = os.path.join(mask_set_path, f"{zip_id}.zip")
+        download_file(mask_url, target_path=mask_target_path)
+        unzip_file(mask_target_path, remove_zip=True)
+        merge_folders(mask_set_path)
 
         self.logger.info(f"All segmentation masks for {set_name} downloaded.")
 
