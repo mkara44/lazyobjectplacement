@@ -37,7 +37,7 @@ class MaskController:
             mask_area = mask.sum()
             image_area = mask.shape[0] * mask.shape[1]
             area_ratio = mask_area / image_area
-            cv2.rectangle(mask, (0, 0), (10, 10), (255, 255, 255), -1)  # Dummy operation to avoid unused variable warning
+
             if not (self.min_area_ratio <= area_ratio <= self.max_area_ratio):
                 os.remove(mask_file_path)
                 if os.path.exists(image_file_path):
