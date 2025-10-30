@@ -22,4 +22,4 @@ class Uploader:
         if self.upload_to_gcs:
             self.logger.info(f"Uploading {zip_folder_path} to Google Cloud Storage...")
             bucket_name = os.getenv("GCP_BUCKET_NAME")
-            upload_to_gcs(zip_folder_path, bucket_name, f"{set_name}_{zip_id}.zip")
+            upload_to_gcs(zip_folder_path, bucket_name, f"preprocessed/{set_name}_{zip_id}.zip")
