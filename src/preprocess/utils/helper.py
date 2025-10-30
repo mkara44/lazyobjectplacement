@@ -2,6 +2,7 @@ import os
 import zipfile
 import logging
 import requests
+from google.cloud import storage
 
 logger = logging.getLogger("lazyobjectplacement")
 
@@ -58,3 +59,10 @@ def parse_image_id(mask_folder_path, set_name):
     image_id_list = [set_name + "/" + mask_file.split("_")[0] for mask_file in mask_file_list]
     unique_image_id_list = list(set(image_id_list))
     return unique_image_id_list
+
+def upload_to_gcs(file_path, bucket_name, destination_blob_name):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_filename(file_path)
+    logger.info(f"File {file_path} uploaded to {destination_blob_name} in bucket {bucket_name}.")

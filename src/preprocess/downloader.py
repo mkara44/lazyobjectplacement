@@ -29,13 +29,13 @@ class Downloader:
         image_id_target_path = os.path.join(self.base_file_folder_path, f"{set_name}_filelist.csv")
         download_file(image_id_url, target_path=image_id_target_path)
 
-        mask_url = self.cfg.openimages.mask_data_url.replace("<SET_NAME>", set_name)
-        mask_target_path = os.path.join(self.base_file_folder_path, f"{set_name}_mask_data.csv")
-        download_file(mask_url, target_path=mask_target_path)
+        mask_data_url = self.cfg.openimages.mask_data_url.replace("<SET_NAME>", set_name)
+        mask_data_target_path = os.path.join(self.base_file_folder_path, f"{set_name}_mask_data.csv")
+        download_file(mask_data_url, target_path=mask_data_target_path)
 
-        bounding_boxes_url = self.cfg.openimages.bounding_boxes_base_url.replace("<SET_NAME>", set_name)
+        bounding_boxes_data_url = self.cfg.openimages.bounding_boxes_base_url.replace("<SET_NAME>", set_name)
         bounding_boxes_target_path = os.path.join(self.base_file_folder_path, f"{set_name}_bbox_annotations.csv")
-        download_file(bounding_boxes_url, target_path=bounding_boxes_target_path)
+        download_file(bounding_boxes_data_url, target_path=bounding_boxes_target_path)
 
         self.logger.info(f"Base file lists downloaded for {set_name}.")
 

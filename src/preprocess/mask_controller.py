@@ -1,6 +1,7 @@
 import os
 import cv2
 import logging
+import pandas as pd
 from tqdm import tqdm
 
 
@@ -10,6 +11,7 @@ class MaskController:
         self.logger = logging.getLogger("lazyobjectplacement")
 
         self.data_save_path = self.cfg.openimages.data_save_path
+        self.base_file_folder_path = os.path.join(self.data_save_path, self.cfg.openimages.base_file_folder_name)
         self.masks_folder_path = os.path.join(self.data_save_path, self.cfg.openimages.masks_folder_name)
         self.images_folder_path = os.path.join(self.data_save_path, self.cfg.openimages.images_folder_name)
 
@@ -17,9 +19,6 @@ class MaskController:
         self.max_area_ratio = self.cfg.mask_controller.max_mask_area_ratio
 
     def run(self, set_name, zip_id):
-        # TODO
-        # Find bbox labels which do not have segmentation boxes
-        # Create segmentation mask using SAM
         self.mask_ratio_controller(set_name, zip_id)
 
     def mask_ratio_controller(self, set_name, zip_id):
