@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from transformers import AutoImageProcessor
 
 from .perturbation import Perturbation
-from .helper import crop_foreground_from_mask
+from .utils.helper import crop_foreground_from_mask
 
 
 class OpenImagesDataset(Dataset):
@@ -53,7 +53,7 @@ class OpenImagesDataset(Dataset):
         foreground_image, foreground_mask = self.perturbation(foreground_image, foreground_mask)
 
         transformed_image = self.vae_transform(image)
-        image_wmask = self.vae_transform(image) * (1 - torch.from_numpy(mask).unsqueeze(0))  # Apply mask
+        image_wmask = self.vae_transform(image) * torch.from_numpy(1 - mask).unsqueeze(0)  # Apply mask
         foreground_image = self.dino_processor(images=foreground_image, return_tensors="pt")["pixel_values"].squeeze(0)
 
         sample = {
