@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn 
+
 from .utils.pixart_transformer_2d import PixArtTransformer2DModel
+from .utils.helper import get_hole
 
 
 class PixArtDecoder(nn.Module):
@@ -25,14 +27,15 @@ class PixArtDecoder(nn.Module):
 
     def forward(
             self, 
-            x_hole: torch.Tensor, 
-            t_hole: torch.Tensor, 
+            x: torch.Tensor, 
             timestep: torch.Tensor, 
+            t_hole: torch.Tensor, 
+            mask: torch.Tensor,
             object_features: torch.Tensor,
-            height: int,
-            width: int,
-            bool_mask: torch.Tensor = None
+            padded: torch.Tensor = False,
         ):
+        x_all, height, width = self.patchify(x)
+        x_hole, bool_mask = get_hole(x_all, mask, height * width)
 
         # Hidden States
         hidden_states = self.context_projection(torch.cat([x_hole, t_hole], dim=-1))
@@ -42,11 +45,12 @@ class PixArtDecoder(nn.Module):
 
         out = self.pixart_transformer(
             hidden_states=hidden_states,
+            mask=mask,
             timestep=timestep,
             encoder_hidden_states=object_features,
         )[0]
 
-        if bool_mask is not None:
+        if not padded:
             out_full = torch.zeros(out.shape[0], bool_mask.shape[1], out.shape[2], device=out.device)
             out_full[bool_mask] = out.reshape(-1, out.shape[2])
         else:

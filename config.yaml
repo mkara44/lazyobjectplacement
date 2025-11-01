@@ -15,6 +15,52 @@ preprocess:
     min_mask_area_ratio: 0.02
     max_mask_area_ratio: 0.8
 
+train:
+  device: cpu
+  batch_size: 2
+  num_epochs: 1
+  max_train_steps: 100000
+  num_workers: 4
+  learning_rate: 2e-5
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  weight_decay: 3e-2
+  adam_epsilon: 1e-08
+  vae_pretrained_model: madebyollin/sdxl-vae-fp16-fix
+  object_encoder_model: facebook/dinov2-small
+  diffusers_model: PixArt-alpha/PixArt-XL-2-512x512
+
+  train_sampling_steps: 1000
+  learn_sigma: False
+  pred_sigma: False
+  snr_loss: False
+
+  dataset:
+    target_size: [512, 512]
+    perturbation_cfg:
+      blur_cfg:
+        p: 0.3
+      color_jitter_cfg:
+        brightness: 0.3
+        contrast: 0.3
+        saturation: 0.3
+        hue: 0.05
+        p: 1
+      horizontal_flip_cfg:
+        p: 0 #.5
+      rotate_cfg:
+        limit: 20
+        border_mode: 0
+        fill: [127, 127, 127]
+        fill_mask: 0
+        p: 1
+      perspective_cfg:
+        scale: [0.01, 0.1]
+        border_mode: 0
+        fill: [127, 127, 127]
+        fill_mask: 0
+        fit_output: False
+
 logging:
   version: 1
   disable_existing_loggers: False

@@ -302,6 +302,7 @@ class PixArtTransformer2DModel(ModelMixin, ConfigMixin):
     def forward(
         self,
         hidden_states: torch.Tensor,
+        mask: torch.Tensor,
         encoder_hidden_states: Optional[torch.Tensor] = None,
         timestep: Optional[torch.LongTensor] = None,
         added_cond_kwargs: Dict[str, torch.Tensor] = None,
