@@ -32,7 +32,7 @@ class PixArtDecoder(nn.Module):
             t_hole: torch.Tensor, 
             mask: torch.Tensor,
             object_features: torch.Tensor,
-            padded: torch.Tensor = False,
+            padded_input: torch.Tensor = False,
         ):
         x_all, height, width = self.patchify(x)
         x_hole, bool_mask = get_hole(x_all, mask, height * width)
@@ -50,7 +50,7 @@ class PixArtDecoder(nn.Module):
             encoder_hidden_states=object_features,
         )[0]
 
-        if not padded:
+        if not padded_input:
             out_full = torch.zeros(out.shape[0], bool_mask.shape[1], out.shape[2], device=out.device)
             out_full[bool_mask] = out.reshape(-1, out.shape[2])
         else:

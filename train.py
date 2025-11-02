@@ -1,15 +1,18 @@
+import os
 import torch
 import argparse
 from tqdm import tqdm
 from omegaconf import OmegaConf
 import torch.nn.functional as F
+from accelerate import Accelerator
 from torch.utils.data import DataLoader
-from diffusers import AutoencoderKL, DDPMScheduler
+from diffusers import AutoencoderKL
 
 from src.models.context_encoder import GlobalContextEncoder
 from src.models.pixart_decoder import PixArtDecoder
 from src.models.utils.helper import Dinov2FeatureExtractor, get_hole
 from src.train.dataset import OpenImagesDataset
+from src.train.utils.helper import save_checkpoint
 from src.utils.iddpm import IDDPM
 
 """
@@ -32,6 +35,13 @@ def parse_args():
     return parser.parse_args()
 
 def main(args, cfg):
+    accelerator = Accelerator(
+            #mixed_precision=cfg.mixed_precision, # TODO needs GPU
+            device_placement=False, # TODO remove after testing
+            gradient_accumulation_steps=cfg.gradient_accumulation_steps,
+            project_dir=os.path.join(cfg.work_dir, "logs")
+        )
+
     # Initialize models
     vae = AutoencoderKL.from_pretrained(
         cfg.vae_pretrained_model, 
@@ -68,6 +78,10 @@ def main(args, cfg):
                                   weight_decay=cfg.weight_decay,
                                   eps=cfg.adam_epsilon)
 
+    global_context_encoder, pixart_decoder = accelerator.prepare(
+        global_context_encoder, pixart_decoder
+    )
+
     # Load dataset
     train_dataset = OpenImagesDataset(
         dataset_path=args.data_path,
@@ -96,6 +110,9 @@ def main(args, cfg):
     #    batch_size=cfg.batch_size,
     #    num_workers=cfg.num_workers,
     #)
+
+    optimizer, train_dataloader = accelerator.prepare(optimizer, train_dataloader)
+    #optimizer, train_dataloader, val_dataloader = accelerator.prepare(optimizer, train_dataloader, val_dataloader)
 
     progress_bar = tqdm(
         range(0, cfg.max_train_steps),
@@ -129,32 +146,64 @@ def main(args, cfg):
                     mode='nearest'
                 )
 
-            T_all = global_context_encoder(Z, mask)
-            T_hole, _ = get_hole(T_all, mask, global_context_encoder.num_patches)
-
             timestep = torch.randint(
                     0, cfg.train_sampling_steps, (cfg.batch_size,), device=args.device
                 ).long()
+            
+            grad_norm = None
+            with accelerator.accumulate(pixart_decoder):
+                optimizer.zero_grad()
+            
+                T_all = global_context_encoder(Z, mask)
+                T_hole, _ = get_hole(T_all, mask, global_context_encoder.num_patches)
+            
+                loss_term = train_diffusion.training_losses(
+                    model=pixart_decoder,
+                    x_start=X,
+                    timestep=timestep,
+                    model_kwargs={
+                        "t_hole": T_hole,
+                        "mask": mask,
+                        "object_features": object_features,
+                        "padded_input": True,
+                    }
+                )
 
-            optimizer.zero_grad()
-            loss_term = train_diffusion.training_losses(
-                model=pixart_decoder,
-                x_start=X,
-                timestep=timestep,
-                model_kwargs={
-                    "t_hole": T_hole,
-                    "mask": mask,
-                    "object_features": object_features,
-                    "padded": False,
-                }
-            )
+                loss = loss_term['loss'].mean()
+                accelerator.backward(loss)
+                if accelerator.sync_gradients:
+                    grad_norm = accelerator.clip_grad_norm_(
+                        list(pixart_decoder.parameters()) + list(global_context_encoder.parameters()),
+                        cfg.gradient_clip
+                    )
+                    
+                optimizer.step()
 
-            loss = loss_term['loss'].mean()
-            optimizer.step()
+            logs = {
+                "train/loss": loss.item(),
+            }
+
+            if grad_norm is not None:
+                logs["train/grad_norm"] = grad_norm.item()
 
             global_step += 1
             progress_bar.update(1)
             progress_bar.set_postfix({"loss": loss.item()})
+            accelerator.log(logs, step=global_step)
+
+            #if ((epoch - 1) * len(train_dataloader) + step + 1) % cfg.save_model_steps == 0:
+            if True:
+                accelerator.wait_for_everyone()
+                if accelerator.is_main_process:
+                    os.umask(0o000)
+                    save_checkpoint(os.path.join(cfg.work_dir, 'checkpoints'),
+                                    epoch=epoch,
+                                    step=(epoch - 1) * len(train_dataloader) + step + 1,
+                                    global_context_encoder=accelerator.unwrap_model(global_context_encoder),
+                                    pixart_decoder=accelerator.unwrap_model(pixart_decoder),
+                                    optimizer=optimizer,
+                                    )
+                
             break
         break
             

@@ -16,16 +16,20 @@ preprocess:
     max_mask_area_ratio: 0.8
 
 train:
-  device: cpu
   batch_size: 2
   num_epochs: 1
   max_train_steps: 100000
+  save_model_steps: 10000
   num_workers: 4
   learning_rate: 2e-5
   adam_beta1: 0.9
   adam_beta2: 0.999
   weight_decay: 3e-2
   adam_epsilon: 1e-08
+  mixed_precision: fp16
+  gradient_accumulation_steps: 1
+  work_dir: ./output
+  gradient_clip: 1.
   vae_pretrained_model: madebyollin/sdxl-vae-fp16-fix
   object_encoder_model: facebook/dinov2-small
   diffusers_model: PixArt-alpha/PixArt-XL-2-512x512
