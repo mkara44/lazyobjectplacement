@@ -15,14 +15,6 @@ from src.train.dataset import OpenImagesDataset
 from src.train.utils.helper import save_checkpoint
 from src.utils.iddpm import IDDPM
 
-"""
-TODO
-
-TRAINING SCRIPT IS NOT COMPLETED YET
-THERE IS NO TRAINING LOOP FOR NOW
-I AM JUST TESTING IF ALL MODULES ARE CONNECTING PROPERLY
-"""
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train LazyObjectPlacementModel")
@@ -36,8 +28,7 @@ def parse_args():
 
 def main(args, cfg):
     accelerator = Accelerator(
-            #mixed_precision=cfg.mixed_precision, # TODO needs GPU
-            device_placement=False, # TODO remove after testing
+            mixed_precision=cfg.mixed_precision,
             gradient_accumulation_steps=cfg.gradient_accumulation_steps,
             project_dir=os.path.join(cfg.work_dir, "logs")
         )
@@ -85,17 +76,10 @@ def main(args, cfg):
     # Load dataset
     train_dataset = OpenImagesDataset(
         dataset_path=args.data_path,
-        set_name="test", #"train",
+        set_name="train",
         dino_model=cfg.object_encoder_model,
         **cfg.dataset
     )
-
-    #val_dataset = OpenImagesDataset(
-    #    dataset_path=args.data_path,
-    #    set_name="val",
-    #    dino_model=cfg.object_encoder_model,
-    #    **cfg.dataset
-    #)
 
     train_dataloader = DataLoader(
         train_dataset,
@@ -104,15 +88,7 @@ def main(args, cfg):
         num_workers=cfg.num_workers,
     )
 
-    #val_dataset = DataLoader(
-    #    val_dataset,
-    #    shuffle=False,
-    #    batch_size=cfg.batch_size,
-    #    num_workers=cfg.num_workers,
-    #)
-
     optimizer, train_dataloader = accelerator.prepare(optimizer, train_dataloader)
-    #optimizer, train_dataloader, val_dataloader = accelerator.prepare(optimizer, train_dataloader, val_dataloader)
 
     progress_bar = tqdm(
         range(0, cfg.max_train_steps),
@@ -124,10 +100,10 @@ def main(args, cfg):
     for epoch in range(1, cfg.num_epochs + 1):
         for step, batch in enumerate(train_dataloader):
             # prepare latents
-            image = batch["image"].to(args.device)
-            mask = batch["mask"].to(args.device)
-            image_wmask = batch["image_wmask"].to(args.device)
-            foreground_image = batch["foreground_image"].to(args.device)
+            image = batch["image"].to(accelerator.device)
+            mask = batch["mask"].to(accelerator.device)
+            image_wmask = batch["image_wmask"].to(accelerator.device)
+            foreground_image = batch["foreground_image"].to(accelerator.device)
 
             with torch.no_grad():
                 Z = vae.encode(image_wmask).latent_dist.sample()
@@ -191,8 +167,7 @@ def main(args, cfg):
             progress_bar.set_postfix({"loss": loss.item()})
             accelerator.log(logs, step=global_step)
 
-            #if ((epoch - 1) * len(train_dataloader) + step + 1) % cfg.save_model_steps == 0:
-            if True:
+            if ((epoch - 1) * len(train_dataloader) + step + 1) % cfg.save_model_steps == 0:
                 accelerator.wait_for_everyone()
                 if accelerator.is_main_process:
                     os.umask(0o000)
