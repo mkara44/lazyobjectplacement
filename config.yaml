@@ -17,7 +17,7 @@ preprocess:
 
 train:
   batch_size: 2
-  num_epochs: 1
+  num_epochs: 100
   max_train_steps: 100000
   save_model_steps: 10000
   num_workers: 4

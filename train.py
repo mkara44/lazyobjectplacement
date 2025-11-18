@@ -27,11 +27,13 @@ def parse_args():
     return parser.parse_args()
 
 def main(args, cfg):
+    os.makedirs(cfg.work_dir, exist_ok=True)
+
     accelerator = Accelerator(
-            mixed_precision=cfg.mixed_precision,
-            gradient_accumulation_steps=cfg.gradient_accumulation_steps,
-            project_dir=os.path.join(cfg.work_dir, "logs")
-        )
+        mixed_precision=cfg.mixed_precision,
+        gradient_accumulation_steps=cfg.gradient_accumulation_steps,
+        project_dir=os.path.join(cfg.work_dir, "logs")
+    )
 
     # Initialize models
     vae = AutoencoderKL.from_pretrained(
@@ -123,7 +125,7 @@ def main(args, cfg):
                 )
 
             timestep = torch.randint(
-                    0, cfg.train_sampling_steps, (cfg.batch_size,), device=args.device
+                    0, cfg.train_sampling_steps, (cfg.batch_size,), device=accelerator.device
                 ).long()
             
             grad_norm = None
@@ -164,13 +166,13 @@ def main(args, cfg):
 
             global_step += 1
             progress_bar.update(1)
-            progress_bar.set_postfix({"loss": loss.item()})
+            progress_bar.set_postfix({"loss": loss.detach().item()})
             accelerator.log(logs, step=global_step)
 
-            if ((epoch - 1) * len(train_dataloader) + step + 1) % cfg.save_model_steps == 0:
+            if global_step % cfg.save_model_steps == 0:
                 accelerator.wait_for_everyone()
                 if accelerator.is_main_process:
-                    os.umask(0o000)
+                    os.makedirs(os.path.join(cfg.work_dir, 'checkpoints'), exist_ok=True)
                     save_checkpoint(os.path.join(cfg.work_dir, 'checkpoints'),
                                     epoch=epoch,
                                     step=(epoch - 1) * len(train_dataloader) + step + 1,
@@ -178,11 +180,9 @@ def main(args, cfg):
                                     pixart_decoder=accelerator.unwrap_model(pixart_decoder),
                                     optimizer=optimizer,
                                     )
-                
-            break
-        break
-            
-    print("DONE!")
+            if global_step >= cfg.max_train_steps:
+                return
+    
 
 if __name__ == "__main__":
     args = parse_args()
