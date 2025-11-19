@@ -19,6 +19,7 @@ class Uploader:
         zip_folder_path = os.path.join(self.data_save_path, f"{set_name}_{zip_id}.zip")
         zip_folder(self.dataset_folder_path, zip_folder_path)
         shutil.rmtree(self.dataset_folder_path)
+        self.logger.info(f"Removed dataset folder {self.dataset_folder_path} after zipping.")
 
         if self.upload_to_gcs:
             self.logger.info(f"Uploading {zip_folder_path} to Google Cloud Storage...")

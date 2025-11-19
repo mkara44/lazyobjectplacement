@@ -2,6 +2,7 @@ import os
 import zipfile
 import logging
 import requests
+from tqdm import tqdm
 from google.cloud import storage
 
 logger = logging.getLogger("lazyobjectplacement")
@@ -33,7 +34,7 @@ def unzip_file(zip_path, extract_to=None, remove_zip=False):
 
 def zip_folder(folder_path, zip_path):
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(folder_path):
+        for root, dirs, files in tqdm(os.walk(folder_path), desc=f"Zipping {folder_path}"):
             for file in files:
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, start=folder_path)

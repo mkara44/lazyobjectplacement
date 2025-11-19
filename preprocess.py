@@ -43,7 +43,7 @@ if __name__ == "__main__":
     downloader_obj = Downloader(cfg.preprocess)
     mask_controller_obj = MaskController(cfg.preprocess)
     uploader_obj = Uploader(cfg.preprocess, args.upload_to_gcs, args.remove_zip_file)
-    for set_name in ['train', 'validation', 'test']:
+    for set_name in ['test', 'train', 'validation']:
         #downloader_obj.download_base_files(set_name)
 
         for zip_id in cfg.preprocess.openimages.id_list:
