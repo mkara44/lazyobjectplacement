@@ -34,7 +34,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    cfg = OmegaConf.load(args.config)
+    cfg = OmegaConf.load(args.config_path)
     setup_logger(cfg.logging)
     logger = logging.getLogger("lazyobjectplacement")
 
