@@ -51,7 +51,7 @@ class Downloader:
         unzip_file(mask_target_path, remove_zip=True)
         merge_folders(mask_set_path)
 
-        self.logger.info(f"All segmentation masks for {set_name}/{zip_id} downloaded.")
+        self.logger.info(f"All segmentation masks for {set_name} with zip ID {zip_id} downloaded.")
 
     def download_images(self, set_name, zip_id):
         mask_set_path = os.path.join(self.masks_folder_path, set_name)
@@ -60,4 +60,4 @@ class Downloader:
         
         image_id_list = parse_image_id(mask_set_path, set_name)
         download_all_images(image_id_list, image_set_path, num_processes=self.cfg.openimages.num_processes)
-        self.logger.info(f"All images for {set_name}/{zip_id} downloaded.")
+        self.logger.info(f"All images for {set_name} with zip ID{zip_id} downloaded.")
