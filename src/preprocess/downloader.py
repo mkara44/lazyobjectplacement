@@ -22,7 +22,7 @@ class Downloader:
 
     def download_files(self, set_name, zip_id):
         self.download_segmentation_masks(set_name, zip_id)
-        self.download_images(set_name)
+        self.download_images(set_name, zip_id)
 
     def download_base_files(self, set_name):
         image_id_url = self.cfg.openimages.image_id_base_url.replace("<SET_NAME>", set_name)
@@ -51,13 +51,13 @@ class Downloader:
         unzip_file(mask_target_path, remove_zip=True)
         merge_folders(mask_set_path)
 
-        self.logger.info(f"All segmentation masks for {set_name} downloaded.")
+        self.logger.info(f"All segmentation masks for {set_name}/{zip_id} downloaded.")
 
-    def download_images(self, set_name):
+    def download_images(self, set_name, zip_id):
         mask_set_path = os.path.join(self.masks_folder_path, set_name)
         image_set_path = os.path.join(self.images_folder_path, set_name)
         os.makedirs(image_set_path, exist_ok=True)
         
         image_id_list = parse_image_id(mask_set_path, set_name)
         download_all_images(image_id_list, image_set_path, num_processes=self.cfg.openimages.num_processes)
-        self.logger.info(f"All images for {set_name} downloaded.")
+        self.logger.info(f"All images for {set_name}/{zip_id} downloaded.")

@@ -13,7 +13,7 @@ load_dotenv()
 def parse_args():
     parser = argparse.ArgumentParser(description="Preprocess OpenImages Dataset")
     parser.add_argument(
-        "--config",
+        "--config_path",
         type=str,
         default="config.yaml",
         help="Path to the configuration file.",
@@ -22,6 +22,11 @@ def parse_args():
         "--upload_to_gcs",
         action="store_true",
         help="Flag to upload processed data to Google Cloud Storage.",
+    )
+    parser.add_argument(
+        "--remove_zip_file",
+        action="store_true",
+        help="Flag to remove zip files after extraction.",
     )
     return parser.parse_args()
 
@@ -37,9 +42,9 @@ if __name__ == "__main__":
     # Bounding boxes are very noisy and will not be used in the current version
     downloader_obj = Downloader(cfg.preprocess)
     mask_controller_obj = MaskController(cfg.preprocess)
-    uploader_obj = Uploader(cfg.preprocess, args.upload_to_gcs)
+    uploader_obj = Uploader(cfg.preprocess, args.upload_to_gcs, args.remove_zip_file)
     for set_name in ['train', 'validation', 'test']:
-        downloader_obj.download_base_files(set_name)
+        #downloader_obj.download_base_files(set_name)
 
         for zip_id in cfg.preprocess.openimages.id_list:
             logger.info(f"Downloading files for {set_name} with zip ID {zip_id}...")
