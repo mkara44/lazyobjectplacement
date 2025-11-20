@@ -6,7 +6,6 @@ from omegaconf import OmegaConf
 import torch.nn.functional as F
 from accelerate import Accelerator
 from torch.utils.data import DataLoader
-from diffusers import AutoencoderKL
 
 from src.models.context_encoder import GlobalContextEncoder
 from src.models.pixart_decoder import PixArtDecoder
@@ -35,23 +34,16 @@ def main(args, cfg):
         project_dir=os.path.join(cfg.work_dir, "logs")
     )
 
-    # Initialize models
-    vae = AutoencoderKL.from_pretrained(
-        cfg.vae_pretrained_model, 
-    )
-
     if cfg.object_encoder_model == "facebook/dinov2-small":
         object_encoder = Dinov2FeatureExtractor()
 
     pixart_decoder = PixArtDecoder(pixart_pretrained_model=cfg.diffusers_model)
     global_context_encoder = GlobalContextEncoder()
 
-    vae.to(args.device)
     object_encoder.to(args.device)
     global_context_encoder.to(args.device)
     pixart_decoder.to(args.device)
     
-    vae.requires_grad_(False)
     object_encoder.requires_grad_(False)
     global_context_encoder.train()
     pixart_decoder.train()
@@ -78,8 +70,9 @@ def main(args, cfg):
     # Load dataset
     train_dataset = OpenImagesDataset(
         dataset_path=args.data_path,
-        set_name="train",
+        set_name="test",
         dino_model=cfg.object_encoder_model,
+        extract_features=False,
         **cfg.dataset
     )
 
@@ -102,24 +95,18 @@ def main(args, cfg):
     for epoch in range(1, cfg.num_epochs + 1):
         for step, batch in enumerate(train_dataloader):
             # prepare latents
-            image = batch["image"].to(accelerator.device)
-            mask = batch["mask"].to(accelerator.device)
-            image_wmask = batch["image_wmask"].to(accelerator.device)
-            foreground_image = batch["foreground_image"].to(accelerator.device)
+            M = batch["mask"].to(accelerator.device)
+            X = batch["image_features"].to(accelerator.device)
+            Z = batch["image_wmask_features"].to(accelerator.device)
+            FO = batch["foreground_image"].to(accelerator.device)
 
             with torch.no_grad():
-                Z = vae.encode(image_wmask).latent_dist.sample()
-                Z = Z * vae.config.scaling_factor
-
-                X = vae.encode(image).latent_dist.sample()
-                X = X * vae.config.scaling_factor
-
-                object_features = object_encoder(foreground_image)
+                object_features = object_encoder(FO)
 
             # Original network uses LearnedMaskDownsampler, here we use nearest neighbor downsampling for simplicity
-            if Z.shape[2:] != mask.shape[2:]:
-                mask = F.interpolate(
-                    mask,
+            if Z.shape[2:] != M.shape[2:]:
+                M = F.interpolate(
+                    M,
                     size=Z.shape[2:],
                     mode='nearest'
                 )
@@ -132,8 +119,8 @@ def main(args, cfg):
             with accelerator.accumulate(pixart_decoder):
                 optimizer.zero_grad()
             
-                T_all = global_context_encoder(Z, mask)
-                T_hole, _ = get_hole(T_all, mask, global_context_encoder.num_patches)
+                T_all = global_context_encoder(Z, M)
+                T_hole, _ = get_hole(T_all, M, global_context_encoder.num_patches)
             
                 loss_term = train_diffusion.training_losses(
                     model=pixart_decoder,
@@ -141,7 +128,7 @@ def main(args, cfg):
                     timestep=timestep,
                     model_kwargs={
                         "t_hole": T_hole,
-                        "mask": mask,
+                        "mask": M,
                         "object_features": object_features,
                         "padded_input": True,
                     }

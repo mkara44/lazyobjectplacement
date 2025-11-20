@@ -5,6 +5,8 @@ preprocess:
     base_file_folder_name: base_files
     images_folder_name: data/images
     masks_folder_name: data/masks
+    vae_image_features_folder_name: vae_image_features
+    vae_image_wmask_features_folder_name: vae_image_wmask_features
     mask_data_url: https://storage.googleapis.com/openimages/v5/<SET_NAME>-annotations-object-segmentation.csv
     segmentation_masks_base_url: https://storage.googleapis.com/openimages/v5/<SET_NAME>-masks/<SET_NAME>-masks-<ID>.zip
     bounding_boxes_base_url: https://storage.googleapis.com/openimages/v5/<SET_NAME>-annotations-bbox.csv
